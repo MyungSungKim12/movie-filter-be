@@ -17,6 +17,7 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 application-supabase.properties
+application-api.properties
 
 ### IntelliJ IDEA ###
 .idea
