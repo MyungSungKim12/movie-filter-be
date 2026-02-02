@@ -1,10 +1,6 @@
 package com.project.moviefilterbe.login.handler;
 
-import com.project.moviefilterbe.login.entity.AccountLog;
-import com.project.moviefilterbe.login.entity.User;
 import com.project.moviefilterbe.login.jwt.JwtTokenProvider;
-import com.project.moviefilterbe.login.repository.AccountLogRepository;
-import com.project.moviefilterbe.login.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +16,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private final AccountLogRepository accountLogRepository;
-    private final UserRepository userRepository;
+
     private final JwtTokenProvider tokenProvider;
 
     @Override
@@ -42,32 +37,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             email = (String) naverResponse.get("email");
         }
         // 3. 카카오 추출 (kakao_account 라는 키 안에 들어있음)
-        // 카카오 추출 보강
         else if (attributes.containsKey("kakao_account")) {
             Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-            // profile이나 email이 있는지 꼼꼼히 체크
-            if (kakaoAccount != null && kakaoAccount.containsKey("email")) {
-                email = (String) kakaoAccount.get("email");
-            }
+            email = (String) kakaoAccount.get("email");
         }
 
-        // 이메일이 없는 경우 방어 코드 (중요!)
+        // email이 없다면? (사용자가 이메일 제공 거부 시)
         if (email == null || email.isEmpty()) {
-            // 카카오 고유 ID(숫자)를 활용해 임시 이메일 형태를 만듦
-            email = oAuth2User.getName() + "@kakao.com";
+            // sub(ID)값이라도 넣어서 토큰이 깨지지 않게 방어
+            email = oAuth2User.getName();
         }
-
         // 2. JWT 토큰 생성
         String token = tokenProvider.createToken(email, "USER");
-
-        // account_log
-        /* [작업자: ms] 1. DB에서 유저 정보를 가져오거나 생성 */
-        final String finalEmail = email; // 람다용 상수
-        User user = userRepository.findByEmail(finalEmail)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-
-        /* [작업자: ms] 2. 로그인 이력 저장 함수 호출 */
-        saveAccountLog(user, request);
 
         // 3. 프론트엔드(Next.js) 리다이렉트 URL 생성
         // 예: http://localhost:3000/login-success?token=ey...
@@ -77,25 +58,5 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 4. 리다이렉트 실행
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
-
-    }
-
-    /* [작업자: ms] 로그인 로그 저장 로직 */
-    private void saveAccountLog(User user, HttpServletRequest request) {
-        String shotUUID = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10);
-        String alId = "al_" + shotUUID;
-
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getRemoteAddr();
-        }
-
-        AccountLog log = AccountLog.builder()
-                .alId(alId)
-                .user(user)  // 위에서 조회한 유저 객체 전달
-                .alLoginIp(ip)
-                .build();
-
-        accountLogRepository.save(log);
     }
 }
