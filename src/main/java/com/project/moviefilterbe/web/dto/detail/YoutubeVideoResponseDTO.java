@@ -1,11 +1,11 @@
-package com.project.moviefilterbe.movie.dto;
+package com.project.moviefilterbe.web.dto.detail;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.util.List;
 
 @Data
-public class YoutubeResponseDTO {
+public class YoutubeVideoResponseDTO {
     private List<YoutubeItem> items;
 
     @Data

@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.login.entity;
+package com.project.moviefilterbe.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

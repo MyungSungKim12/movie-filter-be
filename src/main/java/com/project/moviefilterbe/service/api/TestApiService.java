@@ -14,12 +14,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 @Component
-public class TestApi {
+public class TestApiService {
     @Value("${tmdb.api.key}")
     private String tmdbApiKey;
     @Value("${omdb.api.key}")
@@ -77,7 +76,7 @@ public class TestApi {
         headers.set("x-goog-api-key", geminiApiKey);
 
         String promptText = String.format(
-                "너는 영화 추천 전문가야. 다음 조건에 맞는 영화 3개만 추천해줘. " +
+                "너는 영화 추천 전문가야. 다음 조건에 맞는 영화 20개만 추천해줘. " +
                 "[조건] 인원: %s, 감정: %s, 장르: %s. " +
                 "답변은 반드시 영화 제목만 콤마(,)로 구분해서 보내줘. 예: 영화1,영화2,영화3",
                 people, motion, genre
