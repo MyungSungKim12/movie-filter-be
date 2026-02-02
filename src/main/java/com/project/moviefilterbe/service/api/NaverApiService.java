@@ -1,6 +1,6 @@
-package com.project.moviefilterbe.movie.service;
+package com.project.moviefilterbe.service.api;
 
-import com.project.moviefilterbe.movie.dto.NaverSearchResponseDTO;
+import com.project.moviefilterbe.web.dto.detail.NaverReviewResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
-public class NaverService {
+public class NaverApiService {
 
     private final RestTemplate restTemplate;
 
@@ -25,7 +25,7 @@ public class NaverService {
     @Value("${naver.client.secret}")
     private String clientSecret;
 
-    public NaverSearchResponseDTO searchReviews(String movieTitle) {
+    public NaverReviewResponseDTO searchReviews(String movieTitle) {
         // 1. 검색어 가공 (정확도를 위해 '영화제목 + 후기'로 검색)
         String query = movieTitle + " 후기";
 
@@ -45,11 +45,11 @@ public class NaverService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // 4. API 호출
-        NaverSearchResponseDTO response = restTemplate.exchange(
+        NaverReviewResponseDTO response = restTemplate.exchange(
                 uri,
                 HttpMethod.GET,
                 entity,
-                NaverSearchResponseDTO.class
+                NaverReviewResponseDTO.class
         ).getBody();
 
         // 5. 데이터 정제 (태그 제거)
