@@ -14,12 +14,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 @Component
-public class TestApi {
+public class TestApiService {
     @Value("${tmdb.api.key}")
     private String tmdbApiKey;
     @Value("${omdb.api.key}")

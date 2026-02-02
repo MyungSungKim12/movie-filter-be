@@ -1,6 +1,6 @@
 package com.project.moviefilterbe.web.controller;
 
-import com.project.moviefilterbe.service.api.TestApi;
+import com.project.moviefilterbe.service.api.TestApiService;
 import com.project.moviefilterbe.web.dto.TestRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +15,7 @@ import java.util.List;
 @RequestMapping("/test")
 public class TestController {
 
-    private final TestApi testApi;
+    private final TestApiService testApi;
     
     @PostMapping("/search")
     public String reviewWrite(@RequestBody List<TestRequestDto> requestDto) {
