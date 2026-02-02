@@ -1,6 +1,6 @@
-package com.project.moviefilterbe.movie.service;
+package com.project.moviefilterbe.service.api;
 
-import com.project.moviefilterbe.movie.dto.YoutubeResponseDTO;
+import com.project.moviefilterbe.web.dto.detail.YoutubeVideoResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import java.net.URI;
 
 @Service
 @RequiredArgsConstructor
-public class YoutubeService {
+public class YoutubeApiService {
 
     private final RestTemplate restTemplate;
 
@@ -20,7 +20,7 @@ public class YoutubeService {
 
     private final String YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
-    public YoutubeResponseDTO searchVideos(String movieTitle) {
+    public YoutubeVideoResponseDTO searchVideos(String movieTitle) {
         String query = movieTitle + " 리뷰";
 
         URI uri = UriComponentsBuilder
@@ -34,6 +34,6 @@ public class YoutubeService {
                 .build()
                 .toUri();
 
-        return restTemplate.getForObject(uri, YoutubeResponseDTO.class);
+        return restTemplate.getForObject(uri, YoutubeVideoResponseDTO.class);
     }
 }

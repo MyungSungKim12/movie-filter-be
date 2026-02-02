@@ -1,11 +1,11 @@
-package com.project.moviefilterbe.movie.dto;
+package com.project.moviefilterbe.web.dto.movie;
 
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
 
 @Getter @Setter
-public class MovieResponseDTO {
+public class MovieListResponseDto {
     private int page;
     private List<MovieDetailDTO> results; // 영화 목록
     private int total_pages;

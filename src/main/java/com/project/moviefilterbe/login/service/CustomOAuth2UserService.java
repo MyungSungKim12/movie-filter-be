@@ -1,7 +1,7 @@
 package com.project.moviefilterbe.login.service;
 
-import com.project.moviefilterbe.login.entity.User;
-import com.project.moviefilterbe.login.repository.UserRepository;
+import com.project.moviefilterbe.domain.entity.User;
+import com.project.moviefilterbe.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;

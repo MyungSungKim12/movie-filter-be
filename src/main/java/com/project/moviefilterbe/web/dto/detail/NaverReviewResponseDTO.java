@@ -1,10 +1,10 @@
-package com.project.moviefilterbe.movie.dto;
+package com.project.moviefilterbe.web.dto.detail;
 
 import lombok.Data;
 import java.util.List;
 
 @Data
-public class NaverSearchResponseDTO {
+public class NaverReviewResponseDTO {
     private String lastBuildDate;
     private int total;
     private int start;
