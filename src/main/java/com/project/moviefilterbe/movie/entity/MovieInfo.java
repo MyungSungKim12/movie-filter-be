@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "mf_movie_info") // 테이블명은 관리하기 편하게 mf_ 접두어를 붙였습니다.
+@Table(name = "mf_movie_info")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,12 +15,12 @@ public class MovieInfo {
 
     @Id
     @Column(name = "mv_id")
-    private Long id; // TMDB의 영화 ID를 그대로 PK로 사용 (중복 저장 방지)
+    private Long id;
 
     @Column(name = "mv_title", nullable = false)
     private String title;
 
-    @Column(name = "mv_overview", columnDefinition = "TEXT") // 줄거리는 길 수 있으므로 TEXT 타입
+    @Column(name = "mv_overview", columnDefinition = "TEXT")
     private String overview;
 
     @Column(name = "mv_poster_path")
