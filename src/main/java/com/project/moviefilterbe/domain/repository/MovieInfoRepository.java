@@ -1,6 +1,6 @@
-package com.project.moviefilterbe.movie.repository;
+package com.project.moviefilterbe.domain.repository;
 
-import com.project.moviefilterbe.movie.entity.MovieInfo;
+import com.project.moviefilterbe.domain.entity.MovieInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

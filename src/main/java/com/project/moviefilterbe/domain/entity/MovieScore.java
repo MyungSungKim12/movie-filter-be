@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.movie.entity;
+package com.project.moviefilterbe.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,17 +11,17 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "mf_movie_pictures")
-public class MoviePicture {
+@Table(name = "mf_movie_score")
+public class MovieScore {
     @Id
-    private String mpId;
+    private String msId;
 
     private String miId;
 
-    private String mpUrl;
-    private String mpType;
-    private String mpAlt;
+    private String msTitle;
+
+    private Double msScoreRating;
 
     @CreatedDate
-    private LocalDateTime mpCreatedDate;
+    private LocalDateTime msCreatedDate;
 }

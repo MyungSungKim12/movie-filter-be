@@ -155,9 +155,7 @@ public class MovieExternalApiService {
                 .fromUriString("https://api.themoviedb.org/3/movie/" + tmdbId)
                 .queryParam("api_key", tmdbApiKey)
                 .queryParam("language", "ko-KR")
-                .queryParam("append_to_response", "credits") // 출연진/제작진 포함
-                // watch/providers 추가
-                .queryParam("append_to_response", "credits,watch/providers")
+                .queryParam("append_to_response", "credits,watch/providers,release_dates")
                 .build()
                 .toUri();
 
