@@ -21,19 +21,21 @@ public class MovieController {
     // 인기 영화 목록 (TMDB)
     @GetMapping("/popular")
     public MovieListResponseDto getPopular() {
+        System.out.println("11111111111");
+
         return movieService.getPopularMovies();
     }
-
     // 영화 리뷰 검색 (Naver)
-    // 주소창에 /api/movies/reviews?title=영화제목 형식으로 입력하게 됩니다.
     @GetMapping("/reviews")
     public NaverReviewResponseDTO getReviews(@RequestParam("title") String title) {
+        System.out.println("2222222222");
         return naverService.searchReviews(title);
     }
 
     // 유튜브 영상 검색 테스트
     @GetMapping("/videos")
     public YoutubeVideoResponseDTO getVideos(@RequestParam("title") String title) {
+        System.out.println("333333333333");
         return youtubeService.searchVideos(title);
     }
 }

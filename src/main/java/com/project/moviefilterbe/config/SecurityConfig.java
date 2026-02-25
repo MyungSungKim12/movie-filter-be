@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/test/**").permitAll() // TestController
                         .requestMatchers("/", "/login/**", "/oauth2/**", "/login-success/**").permitAll()
+                        .requestMatchers("/api/recommend/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
