@@ -1,11 +1,15 @@
 package com.project.moviefilterbe.service;
 
-import com.project.moviefilterbe.movie.entity.MovieInfo;
-import com.project.moviefilterbe.movie.entity.MoviePicture;
-import com.project.moviefilterbe.movie.entity.MovieScore;
-import com.project.moviefilterbe.movie.repository.MovieInfoRepository;
-import com.project.moviefilterbe.movie.repository.MoviePictureRepository;
-import com.project.moviefilterbe.movie.repository.MovieScoreRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
+import com.project.moviefilterbe.domain.entity.MovieInfo;
+import com.project.moviefilterbe.domain.entity.MoviePicture;
+import com.project.moviefilterbe.domain.entity.MovieScore;
+import com.project.moviefilterbe.domain.repository.MovieInfoRepository;
+import com.project.moviefilterbe.domain.repository.MoviePictureRepository;
+import com.project.moviefilterbe.domain.repository.MovieScoreRepository;
 import com.project.moviefilterbe.service.api.MovieExternalApiService;
 import com.project.moviefilterbe.web.dto.TestRequestDto;
 import com.project.moviefilterbe.web.dto.tmdb.TmdbSearchListDto;
@@ -81,9 +85,9 @@ public class MovieService {
     }
 
     @Transactional // 개별 영화 단위로 트랜잭션을 분리하여 에러 시 전체 롤백 방지
-    public void saveMovieData(TmdbSearchListDto basic, Map<String, Object> details) {
+    public void saveMovieData(TmdbSearchListDto basic, Map<String, Object> details) throws JsonProcessingException {
         // 1. 공통 ID 준비
-        String commonMovieId = String.valueOf(basic.getTmdbId());
+        String commonMovieId = "mi_" + String.valueOf(basic.getTmdbId());
 
         // 2. 기존 영화 존재 여부 확인 (중복 체크)
         Optional<MovieInfo> existingMovie = infoRepository.findById(commonMovieId);
@@ -110,8 +114,37 @@ public class MovieService {
             Integer runtime = (details.get("runtime") != null) ? (Integer) details.get("runtime") : 0;
 
             Object voteAvg = details.get("vote_average");
-            String ratingStr = (voteAvg != null) ? String.valueOf(voteAvg) : "0.0";
-            Double ratingDouble = (voteAvg != null) ? Double.valueOf(voteAvg.toString()) : 0.0;
+            String voteStr = (voteAvg != null) ? String.valueOf(voteAvg) : "0.0";
+            Double voteDouble = (voteAvg != null) ? Double.valueOf(voteAvg.toString()) : 0.0;
+
+            String imdbId = String.valueOf(details.get("imdb_id"));
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode releaseDates = objectMapper.convertValue(details.get("release_dates"), JsonNode.class);
+            JsonNode jsonResults = releaseDates.path("results");
+
+            String ratingStr = "";
+            JsonNode ratingRaw = MissingNode.getInstance();
+            if(jsonResults.isArray()) {
+                for(JsonNode jsonData : jsonResults) {
+                    String isoCode = jsonData.path("iso_3166_1").asText();
+                    if(isoCode.equals("KR")) {
+                        ratingRaw = jsonData.path("release_dates");
+                        break;
+                    }
+                }
+            }
+            if(ratingRaw.isArray() && !ratingRaw.isEmpty()) {
+                for(JsonNode jsonData : ratingRaw) {
+                    ratingStr = jsonData.path("certification").asText();
+                    break;
+                }
+            }
+
+//            String ratingRaw = (releaseDates != null) ? releaseDates.get(results) : "0.0";
+
+            // iso_3166_1
+//            String ratingStr = (ratingRaw != null) ? String.valueOf(ratingRaw) : "N";
 
             double popularity = 0.0;
             if (details.get("popularity") instanceof Number) {
@@ -175,35 +208,34 @@ public class MovieService {
                     .miGenre(genreNames)
                     .miRating(ratingStr)
                     .miPopularity(popularity)
-                    .miBackdropPath((String) details.get("backdrop_path"))
-                    .miPosterPath(basic.getPosterPath())
                     .miCast(castNames)
                     .miCrew(crewNames)
                     .miProvider(providerNames)
                     .miCreatedDate(formattedNow)
                     .miCreatedCount(1L) // 신규 저장이므로 1부터 시작
                     .miWishlistCount(0L)
+                    .miImdbId(imdbId)
                     .build();
             infoRepository.save(newInfo);
 
             // [2] MoviePicture 저장
             MoviePicture picture = MoviePicture.builder()
-                    .mpId(UUID.randomUUID().toString())
+                    .mpId("mp_" + UUID.randomUUID().toString())
                     .miId(commonMovieId)
-                    .mpUrl(basic.getPosterPath())
-                    .mpType("POSTER")
-                    .mpAlt(basic.getTitle() + " Poster")
+                    .mpPoster(basic.getPosterPath())
+                    .mpBackdrop(basic.getBackdropPath())
+                    .mpType("")
+                    .mpAlt(basic.getTitle() + "_image")
                     .mpCreatedDate(now)
                     .build();
             pictureRepository.save(picture);
 
             // [3] MovieScore 저장
             MovieScore score = MovieScore.builder()
-                    .msId(UUID.randomUUID().toString())
+                    .msId("ms_" + UUID.randomUUID().toString())
                     .miId(commonMovieId)
-                    .uiId("SYSTEM")
                     .msTitle(basic.getTitle())
-                    .msScoreRating(ratingDouble)
+                    .msScoreRating(voteDouble)
                     .msCreatedDate(now)
                     .build();
             scoreRepository.save(score);

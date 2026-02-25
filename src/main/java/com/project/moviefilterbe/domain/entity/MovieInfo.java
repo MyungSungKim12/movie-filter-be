@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.movie.entity;
+package com.project.moviefilterbe.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -38,12 +38,6 @@ public class MovieInfo {
     @Column(name = "mi_popularity")
     private Double miPopularity;
 
-    @Column(name = "mi_backdrop_path")
-    private String miBackdropPath;
-
-    @Column(name = "mi_poster_path")
-    private String miPosterPath;
-
     @Column(name = "mi_cast")
     private String miCast;
 
@@ -61,5 +55,8 @@ public class MovieInfo {
 
     @Column(name = "mi_wishlist_count")
     private Long miWishlistCount;
+
+    @Column(name = "mi_imdb_id")
+    private String miImdbId;
 
 }
