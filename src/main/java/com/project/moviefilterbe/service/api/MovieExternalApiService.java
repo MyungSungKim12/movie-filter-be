@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class TestApiService {
+public class MovieExternalApiService {
     @Value("${tmdb.api.key}")
     private String tmdbApiKey;
     @Value("${omdb.api.key}")
@@ -59,7 +59,6 @@ public class TestApiService {
 
         OmdbSearchResponseDto response = restTemplate.getForObject(uri, OmdbSearchResponseDto.class);
 
-        // OMDb는 검색 결과가 없을 때 "Response":"False"를 보내므로 체크가 필요합니다.
         if ("True".equalsIgnoreCase(response.getResponse())) {
             return response.getSearch();
         }
@@ -76,13 +75,17 @@ public class TestApiService {
         headers.set("x-goog-api-key", geminiApiKey);
         // ai prompt 수정 - 20260211 ms
         String promptText = String.format(
-                "너는 영화 추천 전문가이자 TMDB 데이터베이스 마스터야. 아래 조건에 맞는 영화 20개를 추천해줘.\n" +
-                        "[조건] 인원: %s, 감정: %s, 장르: %s.\n\n" +
-                        "요구사항:\n" +
-                        "1. TMDB에서 검색 가능한 정확한 '한국어 제목'으로 답변해줘.\n" +
-                        "2. 검색 정확도를 위해 각 영화 뒤에 반드시 (개봉연도)를 붙여줘. 예: 기생충(2019)\n" +
-                        "3. 답변은 반드시 영화 리스트를 콤마(,)로만 구분해서 보내줘. 다른 설명은 생략해.",
-                people, motion, genre
+                "너는 TMDB 데이터베이스 기반의 영화 추천 전문가야. 이번 추천의 핵심은 **'장르의 완벽한 일치'**야.\n\n" +
+                        "[최우선 지시사항]\n" +
+                        "사용자가 선택한 장르가 **'%s'**라면, 너는 반드시 **오직 해당 카테고리에 속하는 콘텐츠만** 추천해야 해.\n" +
+                        "- 특히 장르가 '애니' 또는 '애니메이션'인 경우, **실사 영화(Live-action)는 단 한 편도 포함해서는 안 돼.**\n" +
+                        "- 픽사, 디즈니, 지브리, 일본 애니메이션 등 '애니메이션' 장르로 분류된 영화만 20개 골라줘.\n\n" +
+                        "[추천 조건]\n" +
+                        "1. 상황: %s 인원과 %s 감정에 어울리는 영화.\n" +
+                        "2. 형식: 반드시 '영화제목(개봉연도)' 형식을 지킬 것.\n" +
+                        "3. 구분: 각 영화는 반드시 콤마(,)로만 구분하고, 다른 부연 설명은 절대 하지 마.\n\n" +
+                        "결과 예시: 센과 치히로의 행방불명(2001), 토이 스토리 4(2019), 너의 이름은.(2016)...",
+                genre, people, motion
         );
 
         Map<String, Object> requestBody = Map.of(
@@ -145,7 +148,7 @@ public class TestApiService {
         return null;
     }
 
-    public Map<String, Object> getTmdbMovieDetails(Long tmdbId) {
+    public Map<String, Object> getTmdbMovieDetails(String tmdbId) {
         if (tmdbId == null) return null;
 
         URI uri = UriComponentsBuilder
@@ -153,6 +156,8 @@ public class TestApiService {
                 .queryParam("api_key", tmdbApiKey)
                 .queryParam("language", "ko-KR")
                 .queryParam("append_to_response", "credits") // 출연진/제작진 포함
+                // watch/providers 추가
+                .queryParam("append_to_response", "credits,watch/providers")
                 .build()
                 .toUri();
 

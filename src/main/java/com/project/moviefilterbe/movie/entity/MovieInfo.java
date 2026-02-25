@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "mf_movie_info")
+@Table(name = "mf_movies_info")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,34 +14,52 @@ import java.time.LocalDateTime;
 public class MovieInfo {
 
     @Id
-    @Column(name = "mv_id")
-    private Long id;
+    @Column(name = "mi_id")
+    private String miId; // mi_id 대신 miId로 수정
 
-    @Column(name = "mv_title", nullable = false)
-    private String title;
+    @Column(name = "mi_title", nullable = false)
+    private String miTitle; // mi_title 대신 miTitle로 수정
 
-    @Column(name = "mv_overview", columnDefinition = "TEXT")
-    private String overview;
+    @Column(name = "mi_summary")
+    private String miSummary;
 
-    @Column(name = "mv_poster_path")
-    private String posterPath;
+    @Column(name = "mi_release_date")
+    private String miReleaseDate;
 
-    @Column(name = "mv_release_date")
-    private String releaseDate;
+    @Column(name = "mi_runtime")
+    private Integer miRuntime;
 
-    @Column(name = "mv_vote_average")
-    private Double voteAverage;
+    @Column(name = "mi_genre")
+    private String miGenre;
 
-    @Column(name = "mv_popularity")
-    private Double popularity;
+    @Column(name = "mi_rating")
+    private String miRating;
 
-    @Column(name = "last_updated_at")
-    private LocalDateTime lastUpdatedAt; // DB에 저장/수정된 시간 (캐싱 판단 기준)
+    @Column(name = "mi_popularity")
+    private Double miPopularity;
 
-    // JPA의 라이프사이클 이벤트를 이용해 저장/수정 시 자동으로 시간 갱신
-    @PrePersist
-    @PreUpdate
-    protected void onUpdate() {
-        this.lastUpdatedAt = LocalDateTime.now();
-    }
+    @Column(name = "mi_backdrop_path")
+    private String miBackdropPath;
+
+    @Column(name = "mi_poster_path")
+    private String miPosterPath;
+
+    @Column(name = "mi_cast")
+    private String miCast;
+
+    @Column(name = "mi_crew")
+    private String miCrew;
+
+    @Column(name = "mi_provider")
+    private String miProvider;
+
+    @Column(name = "mi_created_date")
+    private String miCreatedDate;
+
+    @Column(name = "mi_created_count")
+    private Long miCreatedCount;
+
+    @Column(name = "mi_wishlist_count")
+    private Long miWishlistCount;
+
 }
