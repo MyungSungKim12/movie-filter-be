@@ -61,14 +61,14 @@ public class MovieService {
         System.out.println("파싱된 옵션 - 인원: " + people + ", 감정: " + motion + ", 장르: " + genre);
 
         // 2. Gemini 호출 시 파싱한 변수들 전달
-//        List<String> recommendedTitles = movieApiService.geminiSearchMovies(people, motion, genre);
-        String[] recommendedTitles = {"아키라(1988)", "모노노케 히메(1997)", "퍼펙트 블루(1997)", "공각기동대(1995)", "신세기 에반게리온 극장판: End of Evangelion(1997)", "라이온 킹(1994)", "인크레더블(2004)", "인크레더블 2(2018)", "인사이드 아웃(2015)", "스파이더맨: 뉴 유니버스(2018)", "코렐라인: 비밀의 문(2009)", "파프리카(2006)", "붉은 돼지(1992)", "슈렉(2001)", "주토피아(2016)", "늑대아이(2012)", "도쿄 대부(2003)", "그대들은 어떻게 살 것인가(2023)", "메가마인드(2010)", "뮬란(1998)"};
-//        System.out.println("Gemini 추천 결과: " + recommendedTitles);
+        List<String> recommendedTitles = movieApiService.geminiSearchMovies(people, motion, genre);
+//        String[] recommendedTitles = {"아키라(1988)", "모노노케 히메(1997)", "퍼펙트 블루(1997)", "공각기동대(1995)", "신세기 에반게리온 극장판: End of Evangelion(1997)", "라이온 킹(1994)", "인크레더블(2004)", "인크레더블 2(2018)", "인사이드 아웃(2015)", "스파이더맨: 뉴 유니버스(2018)", "코렐라인: 비밀의 문(2009)", "파프리카(2006)", "붉은 돼지(1992)", "슈렉(2001)", "주토피아(2016)", "늑대아이(2012)", "도쿄 대부(2003)", "그대들은 어떻게 살 것인가(2023)", "메가마인드(2010)", "뮬란(1998)"};
+        System.out.println("Gemini 추천 결과: " + recommendedTitles);
 
-//        if (recommendedTitles.isEmpty()) {
-//            System.out.println("Gemini가 영화를 하나도 추천하지 않았습니다.");
-//            return;
-//        }
+        if (recommendedTitles.isEmpty()) {
+            System.out.println("Gemini가 영화를 하나도 추천하지 않았습니다.");
+            return "NONE";
+        }
         for (String rawTitle : recommendedTitles) {
             try {
                 // 3. TMDB 검색 (ID 확보)
