@@ -30,8 +30,6 @@ public class MovieRecommendController {
             return "Fail: Empty Data";
         }
 
-        movieService.recommendAndSave(requestDto);
-        return "Success";
-
+        return movieService.recommendAndSave(requestDto);
     }
 }
