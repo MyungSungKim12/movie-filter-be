@@ -5,28 +5,29 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.project.moviefilterbe.domain.entity.MovieInfo;
+import com.project.moviefilterbe.domain.entity.MovieLog;
 import com.project.moviefilterbe.domain.entity.MoviePicture;
 import com.project.moviefilterbe.domain.entity.MovieScore;
 import com.project.moviefilterbe.domain.repository.MovieInfoRepository;
+import com.project.moviefilterbe.domain.repository.MovieLogRepository;
 import com.project.moviefilterbe.domain.repository.MoviePictureRepository;
 import com.project.moviefilterbe.domain.repository.MovieScoreRepository;
 import com.project.moviefilterbe.service.api.MovieExternalApiService;
+import com.project.moviefilterbe.service.api.OmdbApiService;
+import com.project.moviefilterbe.util.CommonUtil;
 import com.project.moviefilterbe.web.dto.TestRequestDto;
+import com.project.moviefilterbe.web.dto.omdb.OmdbSearchResponseDto;
 import com.project.moviefilterbe.web.dto.tmdb.TmdbSearchListDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import static java.lang.String.valueOf;
 
 @Slf4j
 @Service
@@ -34,13 +35,23 @@ import static java.lang.String.valueOf;
 public class MovieService {
 
     private final MovieExternalApiService movieApiService;
+    private final OmdbApiService omdbApiService;
+
     private final MovieInfoRepository infoRepository;
     private final MoviePictureRepository pictureRepository;
     private final MovieScoreRepository scoreRepository;
+    private final MovieLogRepository movieLogRepository;
 
     @Transactional
-    public void recommendAndSave(List<TestRequestDto> options) {
+    public String recommendAndSave(List<TestRequestDto> options) {
         System.out.println("======= [DEBUG] 서비스 로직 시작! =======");
+
+        List<String> recommendTmdbIdList = new ArrayList<>();
+        Map<String, List<String>> recommendOptionList = new HashMap<>();
+
+        for(TestRequestDto requestDto : options) {
+            recommendOptionList.computeIfAbsent(requestDto.getType(), k -> new ArrayList<>()).add(requestDto.getTitle());
+        }
 
         // 1. 옵션 파싱 (프론트에서 보낸 type에 맞춰서 추출)
         String people = options.stream().filter(o -> "P".equals(o.getType())).map(TestRequestDto::getTitle).findFirst().orElse("상관없음");
@@ -51,13 +62,13 @@ public class MovieService {
 
         // 2. Gemini 호출 시 파싱한 변수들 전달
         List<String> recommendedTitles = movieApiService.geminiSearchMovies(people, motion, genre);
+//        String[] recommendedTitles = {"아키라(1988)", "모노노케 히메(1997)", "퍼펙트 블루(1997)", "공각기동대(1995)", "신세기 에반게리온 극장판: End of Evangelion(1997)", "라이온 킹(1994)", "인크레더블(2004)", "인크레더블 2(2018)", "인사이드 아웃(2015)", "스파이더맨: 뉴 유니버스(2018)", "코렐라인: 비밀의 문(2009)", "파프리카(2006)", "붉은 돼지(1992)", "슈렉(2001)", "주토피아(2016)", "늑대아이(2012)", "도쿄 대부(2003)", "그대들은 어떻게 살 것인가(2023)", "메가마인드(2010)", "뮬란(1998)"};
         System.out.println("Gemini 추천 결과: " + recommendedTitles);
 
         if (recommendedTitles.isEmpty()) {
             System.out.println("Gemini가 영화를 하나도 추천하지 않았습니다.");
-            return;
+            return "NONE";
         }
-
         for (String rawTitle : recommendedTitles) {
             try {
                 // 3. TMDB 검색 (ID 확보)
@@ -75,6 +86,7 @@ public class MovieService {
 
                     if (details != null) {
                         saveMovieData(basic, details);
+                        recommendTmdbIdList.add("mi_" + basic.getTmdbId());
                         log.info("영화 저장 완료: {}", basic.getTitle());
                     }
                 }
@@ -82,6 +94,9 @@ public class MovieService {
                 log.error("영화 처리 중 오류 발생 ({}): {}", rawTitle, e.getMessage());
             }
         }
+        String movieLogId = saveMovieLog(recommendTmdbIdList, recommendOptionList);
+
+        return movieLogId;
     }
 
     @Transactional // 개별 영화 단위로 트랜잭션을 분리하여 에러 시 전체 롤백 방지
@@ -137,7 +152,7 @@ public class MovieService {
             if(ratingRaw.isArray() && !ratingRaw.isEmpty()) {
                 for(JsonNode jsonData : ratingRaw) {
                     ratingStr = jsonData.path("certification").asText();
-                    break;
+                    if(ratingStr.length() > 0) break;
                 }
             }
 
@@ -186,7 +201,7 @@ public class MovieService {
 
                     if (flatrate != null && !flatrate.isEmpty()) {
                         providerNames = flatrate.stream()
-                                .map(f -> String.valueOf(f.get("provider_name"))) // 플랫폼 명칭 추출
+                                .map(f -> CommonUtil.getConversionPlatform(String.valueOf(f.get("provider_name")))) // 플랫폼 명칭 추출
                                 .distinct() // 혹시 모를 중복 제거
                                 .collect(Collectors.joining(",")); // 콤마(,)로 구분하여 결합
                     }
@@ -195,14 +210,14 @@ public class MovieService {
 
             // 만약 한국 제공 정보가 아예 없다면 "정보 없음" 또는 빈 값 처리
             if (providerNames.isEmpty()) {
-                providerNames = "정보 없음";
+                providerNames = "NONE";
             }
 
             // [1] MovieInfo 저장 (신규)
             MovieInfo newInfo = MovieInfo.builder()
                     .miId(commonMovieId)
                     .miTitle(basic.getTitle())
-                    .miSummary(basic.getOverview() != null ? basic.getOverview() : "정보 없음")
+                    .miSummary(basic.getOverview() != null ? basic.getOverview() : "NONE")
                     .miReleaseDate(basic.getReleaseDate())
                     .miRuntime(runtime)
                     .miGenre(genreNames)
@@ -230,17 +245,63 @@ public class MovieService {
                     .build();
             pictureRepository.save(picture);
 
-            // [3] MovieScore 저장
-            MovieScore score = MovieScore.builder()
-                    .msId("ms_" + UUID.randomUUID().toString())
-                    .miId(commonMovieId)
-                    .msTitle(basic.getTitle())
-                    .msScoreRating(voteDouble)
-                    .msCreatedDate(now)
-                    .build();
-            scoreRepository.save(score);
+            saveMovieScore(commonMovieId, voteDouble, imdbId);
 
             log.info("======= [NEW] 새로운 영화 저장 완료: {} =======", basic.getTitle());
         }
+    }
+
+    @Transactional
+    public void saveMovieScore(String miId, Double tmdbScore, String imdbId) {
+
+        OmdbSearchResponseDto omdbSearchResponseDto = omdbApiService.getMovieDetails(imdbId);
+
+        String imdbScore = omdbSearchResponseDto.getRatings().stream()
+                .filter(r -> "Internet Movie Database".equals(r.getSource()))
+                .findFirst()
+                .map(OmdbSearchResponseDto.Rating::getValue)
+                .filter(val -> !val.equalsIgnoreCase("N/A"))
+                .orElse("0/10");
+        String metaScore = omdbSearchResponseDto.getRatings().stream()
+                .filter(r -> "Metacritic".equals(r.getSource()))
+                .findFirst()
+                .map(OmdbSearchResponseDto.Rating::getValue)
+                .filter(val -> !val.equalsIgnoreCase("N/A"))
+                .orElse("0/100");
+        String tomatoScore = omdbSearchResponseDto.getRatings().stream()
+                .filter(r -> "Rotten Tomatoes".equals(r.getSource()))
+                .findFirst()
+                .map(OmdbSearchResponseDto.Rating::getValue)
+                .filter(val -> !val.equalsIgnoreCase("N/A"))
+                .orElse("0%");
+
+        MovieScore score = MovieScore.builder()
+                .msId("ms_" + imdbId)
+                .miId(miId)
+                .msTitle(omdbSearchResponseDto.getTitle())
+                .msYear(omdbSearchResponseDto.getYear())
+                .msTmdbScore(BigDecimal.valueOf(tmdbScore))
+                .msImdbScore(BigDecimal.valueOf(Double.parseDouble(imdbScore.split("/")[0])))
+                .msMetaScore(Integer.parseInt(metaScore.split("/")[0]))
+                .msTomatoScore(Integer.parseInt(tomatoScore.split("%")[0]))
+                .msCreatedDate(CommonUtil.getDateTimeNow())
+                .build();
+        scoreRepository.save(score);
+    }
+
+    @Transactional
+    public String saveMovieLog(List<String> tmdbIdList, Map<String, List<String>> optionList) {
+
+        MovieLog movieLog = MovieLog.builder()
+                .mlId(CommonUtil.getGenerateId("ml"))
+                .uiId(null)
+                .mlMovieList(tmdbIdList)
+                .mlOptionList(optionList)
+                .mlCreatedDate(CommonUtil.getDateTimeNow())
+                .mlExpiresDate(CommonUtil.getDateTimePlusDay(7))
+                .build();
+        MovieLog savedLog = movieLogRepository.save(movieLog);
+
+        return savedLog.getMlId();
     }
 }

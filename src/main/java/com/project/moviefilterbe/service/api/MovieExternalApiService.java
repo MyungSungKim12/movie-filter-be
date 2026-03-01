@@ -47,24 +47,24 @@ public class MovieExternalApiService {
         return List.of();
     }
 
-    public List<OmdbSearchListDto> omdbSearchMovies(String title) {
-        URI uri = UriComponentsBuilder
-                .fromUriString("http://www.omdbapi.com/")
-                .queryParam("apikey", omdbApiKey)
-                .queryParam("s", title) // Search 파라미터
-                .build()
-                .encode()
-                .toUri();
-        System.out.println(restTemplate.getForObject(uri, OmdbSearchResponseDto.class));
-
-        OmdbSearchResponseDto response = restTemplate.getForObject(uri, OmdbSearchResponseDto.class);
-
-        if ("True".equalsIgnoreCase(response.getResponse())) {
-            return response.getSearch();
-        }
-
-        return List.of();
-    }
+//    public List<OmdbSearchListDto> omdbSearchMovies(String title) {
+//        URI uri = UriComponentsBuilder
+//                .fromUriString("http://www.omdbapi.com/")
+//                .queryParam("apikey", omdbApiKey)
+//                .queryParam("s", title) // Search 파라미터
+//                .build()
+//                .encode()
+//                .toUri();
+//        System.out.println(restTemplate.getForObject(uri, OmdbSearchResponseDto.class));
+//
+//        OmdbSearchResponseDto response = restTemplate.getForObject(uri, OmdbSearchResponseDto.class);
+//
+//        if ("True".equalsIgnoreCase(response.getResponse())) {
+//            return response.getSearch();
+//        }
+//
+//        return List.of();
+//    }
 
     public List<String> geminiSearchMovies(String people, String motion, String genre) {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";

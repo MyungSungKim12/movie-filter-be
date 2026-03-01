@@ -11,12 +11,29 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OmdbSearchResponseDto {
-    @JsonProperty("Search")
-    private List<OmdbSearchListDto> search;
-    @JsonProperty("totalResults")
-    private String totalResults;
-    @JsonProperty("Response")
-    private String response;
-    @JsonProperty("Error")
-    private String error;
+    @JsonProperty("imdbID")
+    private String imdbId;
+
+    @JsonProperty("Title")
+    private String title;
+
+    @JsonProperty("Year")
+    private String year;
+
+    @JsonProperty("imdbRating")
+    private String imdbRating; // IMDb 평점
+
+    @JsonProperty("Metascore")
+    private String metaScore;   // 메타크리틱 점수
+
+    @JsonProperty("Ratings")
+    private List<Rating> ratings; // 상세 평점 배열
+
+    @Data
+    public static class Rating {
+        @JsonProperty("Source")
+        private String source;
+        @JsonProperty("Value")
+        private String value;
+    }
 }
