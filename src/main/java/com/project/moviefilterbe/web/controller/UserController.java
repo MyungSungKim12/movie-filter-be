@@ -1,5 +1,6 @@
 package com.project.moviefilterbe.web.controller;
 
+import com.project.moviefilterbe.domain.entity.WishList;
 import com.project.moviefilterbe.service.UserService;
 import com.project.moviefilterbe.service.api.NaverApiService;
 import com.project.moviefilterbe.service.api.TmdbApiService;
@@ -25,4 +26,9 @@ public class UserController {
     public void saveWishlist(@RequestBody WishlistRequestDto wishlistRequestDto) {
         userService.updateWishlist(wishlistRequestDto);
     }
+    @GetMapping("/wishlist/{uiId c}")
+    public List<WishList> getWishlist(@PathVariable String uiId) {
+        return userService.getWishlistByUiId(uiId);
+    }
+
 }
