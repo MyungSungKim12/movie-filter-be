@@ -35,4 +35,9 @@ public class UserService {
             wishListRepository.save(wishList);
         }
     }
+    @Transactional(readOnly = true)
+    public java.util.List<WishList> getWishlistByUiId(String uiId) {
+        return wishListRepository.findByUiId(uiId);
+    }
+
 }
