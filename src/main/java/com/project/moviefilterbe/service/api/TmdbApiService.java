@@ -1,63 +1,80 @@
 package com.project.moviefilterbe.service.api;
 
-import com.project.moviefilterbe.service.api.NaverApiService;
-import com.project.moviefilterbe.service.api.YoutubeApiService;
-import com.project.moviefilterbe.web.dto.movie.MovieDetailResponseDto;
-import com.project.moviefilterbe.web.dto.movie.MovieListResponseDto;
+import com.project.moviefilterbe.util.TmdbApiUtil;
+import com.project.moviefilterbe.web.dto.gemini.GeminiJsonDto;
+import com.project.moviefilterbe.web.dto.tmdb.TmdbDetailResponseDto;
+import com.project.moviefilterbe.web.dto.tmdb.TmdbSearchResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
-/* [작업자: ms / 날짜: 2026-01-26] TMDB API 데이터 가공 및 인증 로직 보완 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TmdbApiService {
-
     private final RestTemplate restTemplate;
-    private final NaverApiService naverApiService;
-    private final YoutubeApiService youtubeService;
-    private final String IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-    private final String TMDB_POPULAR_URL = "https://api.themoviedb.org/3/movie/popular?language=ko-KR&page=1";
 
-    @Value("${tmdb.api.token}")
-    private String tmdbToken;
+    @Value("${tmdb.api.key}")
+    private String tmdbApiKey;
 
-    public MovieListResponseDto getPopularMovies() {
-        // 1. 헤더에 토큰(Bearer) 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + tmdbToken);
-        headers.set("accept", "application/json");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    public TmdbDetailResponseDto searchTmdbMovieInfo(GeminiJsonDto geminiJsonDto) {
+        String movieTitle = geminiJsonDto.getTitle();
+        String movieYear = geminiJsonDto.getYear();
+        try {
+            String tmdbApiStep01 = UriComponentsBuilder
+                    .fromUriString("https://api.themoviedb.org/3/search/movie")
+                    .queryParam("api_key", tmdbApiKey)
+                    .queryParam("language", "ko-KR")
+                    .queryParam("query", movieTitle)
+                    .queryParam("primary_release_year", movieYear)
+                    .build().encode().toUriString();
 
-        // 2. TMDB API 호출
-        MovieListResponseDto response = restTemplate.exchange(
-                TMDB_POPULAR_URL,
-                HttpMethod.GET,
-                entity,
-                MovieListResponseDto.class
-        ).getBody();
+            TmdbSearchResponseDto tmdbSearchResponseDto = restTemplate.getForObject(tmdbApiStep01, TmdbSearchResponseDto.class);
 
-        // 3. 포스터 URL
-        if (response != null && response.getResults() != null) {
-            response.getResults().forEach(movie -> {
-                if (movie.getPoster_path() != null && !movie.getPoster_path().startsWith("http")) {
-                    movie.setPoster_path(IMAGE_BASE_URL + movie.getPoster_path());
+            if (tmdbSearchResponseDto == null || tmdbSearchResponseDto.getResults() == null || tmdbSearchResponseDto.getResults().isEmpty()) {
+                log.error("[TMDB] 검색 결과가 없습니다. : {}-{}", movieTitle, movieYear);
+                return null;
+            }
+
+            Long tmdbId = tmdbSearchResponseDto.getResults().get(0).getTmdbId();
+            // Long tmdbId = 1858L;
+
+            if(tmdbId != null) {
+                String tmdbApiStep02 = UriComponentsBuilder
+                        .fromUriString("https://api.themoviedb.org/3/movie/{id}")
+                        .queryParam("api_key", "fdb28192995b1d3f224fffe05d4da29a")
+                        .queryParam("language", "ko-KR")
+                        .queryParam("append_to_response", "credits,watch/providers,release_dates")
+                        .buildAndExpand(tmdbId).toUriString();
+
+                TmdbDetailResponseDto tmdbDetailResponseDto = restTemplate.getForObject(tmdbApiStep02, TmdbDetailResponseDto.class);
+                if (tmdbDetailResponseDto != null) {
+                    tmdbDetailResponseDto.setGenre(TmdbApiUtil.getExtractGenre(tmdbDetailResponseDto.getGenres()));
+                    tmdbDetailResponseDto.setRating(TmdbApiUtil.getExtractRating(tmdbDetailResponseDto.getReleaseDates().getResults()));
+                    tmdbDetailResponseDto.setCast(TmdbApiUtil.getExtractCast(tmdbDetailResponseDto.getCredits().getCast()));
+                    tmdbDetailResponseDto.setCrew(TmdbApiUtil.getExtractCrew(tmdbDetailResponseDto.getCredits().getCrew()));
+                    tmdbDetailResponseDto.setOtt(TmdbApiUtil.getExtractOtt(tmdbDetailResponseDto.getWatchProviders().getResults()));
+                    return tmdbDetailResponseDto;
+                } else {
+                    log.error("[TMDB] 상세 정보 응답 빈값 ID: {}", tmdbId);
+                    return null;
                 }
-            });
+            }
+            return null;
+        } catch (HttpClientErrorException e) {
+            log.error("[TMDB] 클라이언트 에러 : {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return null;
+        } catch (ResourceAccessException e) {
+            log.error("[TMDB] 네트워크 연결 실패 : {}", e.getMessage());
+            return null;
+        } catch (Exception e) {
+            log.error("[TMDB] 알수없는 에러 ({}): ", e.getMessage());
+            return null;
         }
-
-        return response;
-    }
-    public MovieDetailResponseDto getMovieDetailComposite(String title, Long movieId) {
-        // 1. 기본 정보 가져오기
-        return MovieDetailResponseDto.builder()
-                .movieInfo(null) // 여기에 상세 정보 로직 연결
-                .blogReviews(naverApiService.searchReviews(title).getItems())
-                .videoReviews(youtubeService.searchVideos(title).getItems())
-                .build();
     }
 }

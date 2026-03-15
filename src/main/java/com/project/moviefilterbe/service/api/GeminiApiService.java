@@ -1,19 +1,55 @@
+package com.project.moviefilterbe.service.api;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.moviefilterbe.web.dto.gemini.GeminiJsonDto;
+import com.project.moviefilterbe.web.dto.gemini.GeminiResponseDto;
+import com.project.moviefilterbe.web.dto.movie.MovieRecommendRequestDto;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiApiService {
-  private static final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public void geminiSearchMovies(String people, String[] motion, String[] genre) {
-        String motions = String.join(",", motion);
-        String genres = String.join(",", genre);
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    public List<GeminiJsonDto> geminiSearchMovies(MovieRecommendRequestDto requestDto) {
+        Map<String, String> grouped = requestDto.getOption().stream()
+                .collect(Collectors.groupingBy(
+                        MovieRecommendRequestDto.Option::getType,
+                        Collectors.mapping(MovieRecommendRequestDto.Option::getTitle, Collectors.joining(","))
+                ));
+
+        String people = grouped.getOrDefault("P", "");
+        String motions = grouped.getOrDefault("M", "");
+        String genres = grouped.getOrDefault("G", "");
 
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
         URI uri = UriComponentsBuilder.fromUriString(url).build().toUri();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-goog-api-key", "AIzaSyB5XlSASbNyVn5EgYWUnDsSy4SgYNSetrM");
-        // ai prompt 수정 - 20260211 ms
+        headers.set("x-goog-api-key", geminiApiKey);
+
         String promptText = String.format(
             "너는 영화 추천 전문 API 시스템이야. 사용자의 감정, 인원, 장르 데이터를 기반으로 최적의 영화 20개를 추천한다.\n\n" +
             "[규칙]\n" +
@@ -25,7 +61,7 @@ public class GeminiApiService {
             "  \"recommended_movies\": [\"제목(연도)\", \"제목(연도)\", ...]\n" +
             "}\n\n" +
             "[요청 내용]\n" +
-            "감정: %s / 인원: %s명 / 장르: %s",
+            "감정: %s / 인원: %s / 장르: %s",
             motions, people, genres
         );
 
@@ -41,29 +77,34 @@ public class GeminiApiService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            JsonNode root = restTemplate.postForObject(uri, entity, JsonNode.class);
+            GeminiResponseDto response = restTemplate.postForObject(uri, entity, GeminiResponseDto.class);
 
-            if (root != null) {
-                String rawJson = root.path("candidates").get(0)
-                                    .path("content").path("parts").get(0)
-                                    .path("text").asText();
+            if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
+                String resultText = response.getCandidates().get(0).getContent().getParts().get(0).getText();
+//                log.info("Gemini 추천 결과 : {}" , resultText);
 
                 ObjectMapper objectMapper = new ObjectMapper();
-                Map<String, List<String>> resultMap = objectMapper.readValue(rawJson, new TypeReference<>() {});
-                System.out.println(resultMap.get("recommended_movies"));
-            }
+                Map<String, List<String>> resultMap = objectMapper.readValue(resultText, new TypeReference<>() {});
+                List<String> tempMovieList = resultMap.get("recommended_movies");
 
-            // if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
-            //     String jsonText = response.getCandidates().get(0).getContent().getParts().get(0).getText();
-                
-            //     // Jackson ObjectMapper를 사용하여 JSON 파싱
-            //     ObjectMapper objectMapper = new ObjectMapper();
-            //     Map<String, List<String>> resultMap = objectMapper.readValue(jsonText, new TypeReference<>() {});
-                
-            //     // return resultMap.get("recommended_movies");
-            // }
+                List<GeminiJsonDto> movieList = new ArrayList<>();
+                Pattern pattern = Pattern.compile("(.+)\\s*\\((\\d{4})\\)");
+
+                for (String raw : tempMovieList) {
+                    Matcher matcher = pattern.matcher(raw);
+                    if (matcher.find()) {
+                        String title = matcher.group(1).trim();
+                        String year = matcher.group(2);
+                        movieList.add(new GeminiJsonDto(title, year));
+                    }
+                }
+                return movieList;
+            } else {
+                return null;
+            }
         } catch (Exception e) {
-            System.err.println("Gemini 호출 또는 파싱 에러: " + e.getMessage());
+            log.error("Gemini 호출 에러: {}", e.getMessage());
+            return null;
         }
     }
 }
