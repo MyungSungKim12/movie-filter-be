@@ -22,4 +22,9 @@ public class UserController {
     public void profileUploadImage(@RequestPart("files") MultipartFile multipartFile, @RequestPart("userId") String userId) {
         userService.updateProfileImage(multipartFile, userId);
     }
+
+    @PostMapping("/clickLog")
+    public void saveClickLog(@RequestBody WishlistRequestDto wishlistRequestDto) {
+        userService.updateClickLog(wishlistRequestDto);
+    }
 }
