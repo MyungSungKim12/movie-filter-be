@@ -4,6 +4,7 @@ import com.project.moviefilterbe.service.app.UserService;
 import com.project.moviefilterbe.web.dto.user.WishlistRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/user")
@@ -15,5 +16,10 @@ public class UserController {
     @PostMapping("/wishlist")
     public void saveWishlist(@RequestBody WishlistRequestDto wishlistRequestDto) {
         userService.updateWishlist(wishlistRequestDto);
+    }
+
+    @PostMapping("/uploadImage")
+    public void profileUploadImage(@RequestPart("files") MultipartFile multipartFile, @RequestPart("userId") String userId) {
+        userService.updateProfileImage(multipartFile, userId);
     }
 }
