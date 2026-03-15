@@ -21,24 +21,4 @@ public final class CommonUtil {
     public static OffsetDateTime getDateTimePlusDay(int days) {
         return getDateTimeNow().plusDays(days);
     }
-
-    public static String getConversionPlatform(String platform) {
-        String result;
-        if(platform.indexOf("Disney") != -1) {
-            result = "DISNEY";
-        } else if(platform.indexOf("Netflix") != -1) {
-            result = "NETFLIX";
-        } else if(platform.indexOf("wavve") != -1) {
-            result = "WAVVE";
-        } else if(platform.indexOf("Watcha") != -1) {
-            result = "WATCHA";
-        } else if(platform.indexOf("Amazon") != -1) {
-            result = "AMAZON";
-        } else if(platform.indexOf("Coupang") != -1) {
-            result = "COUPANG";
-        } else {
-            result = platform;
-        }
-        return result;
-    }
 }

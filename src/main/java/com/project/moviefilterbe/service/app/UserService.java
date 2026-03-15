@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -23,6 +22,7 @@ public class UserService {
 
     private final WishListRepository wishListRepository;
     private final UserRepository userRepository;
+    private final ClickLogRepository clickLogRepository;
 
     private final ImageUtil imageUtil;
 
@@ -71,6 +71,32 @@ public class UserService {
                 imageUtil.ImageDeleteS3(uploadImageUrl);
             }
             throw new RuntimeException("IMAGE_PROCESS_ERROR");
+        }
+    }
+
+    @Transactional
+    public void updateClickLog(WishlistRequestDto wishlistRequestDto) {
+        try {
+            Optional<ClickLog> existingClickLog = clickLogRepository.findByUiIdAndMiId(
+                    wishlistRequestDto.getUiId(),
+                    wishlistRequestDto.getMiId()
+            );
+
+            if (existingClickLog.isPresent()) {
+                existingClickLog.get().clickCountUpdate();
+            } else {
+                ClickLog clickLog = ClickLog.builder()
+                        .clId(CommonUtil.getGenerateId("cl"))
+                        .uiId(wishlistRequestDto.getUiId())
+                        .miId(wishlistRequestDto.getMiId())
+                        .clClickCount(1)
+                        .clCreatedDate(CommonUtil.getDateTimeNow())
+                        .clUpdatedDate(CommonUtil.getDateTimeNow())
+                        .build();
+                clickLogRepository.save(clickLog);
+            }
+        } catch(Exception e) {
+            log.error("[USER] 클릭 로그 업데이트 오류 : {}", e.getMessage());
         }
     }
 }

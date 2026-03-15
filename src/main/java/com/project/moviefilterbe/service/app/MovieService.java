@@ -146,7 +146,7 @@ public class MovieService {
                             .build();
 
                     MoviePicture moviePicture = MoviePicture.builder()
-                            .mpId("mp_" + UUID.randomUUID().toString())
+                            .mpId(CommonUtil.getGenerateId("mp"))
                             .miId(miId)
                             .mpPoster(dto.getPosterImagePath())
                             .mpBackdrop(dto.getBackdropImagePath())
