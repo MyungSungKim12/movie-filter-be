@@ -10,3 +10,4 @@ import java.util.Optional;
 public interface WishListRepository extends JpaRepository<WishList, String> {
     Optional<WishList> findByUiIdAndMiId(String uiId, String miId);
 }
+
