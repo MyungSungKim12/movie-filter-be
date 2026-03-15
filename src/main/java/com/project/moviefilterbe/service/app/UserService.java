@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.service;
+package com.project.moviefilterbe.service.app;
 
 import com.project.moviefilterbe.domain.entity.*;
 import com.project.moviefilterbe.domain.repository.*;
