@@ -1,14 +1,22 @@
 package com.project.moviefilterbe.web.dto.tmdb;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class TmdbSearchResponseDto {
-    private List<TmdbSearchListDto> results;
+    @JsonProperty("results")
+    private List<Results> results;
+
+    @Data
+    public static class Results {
+        @JsonProperty("id")
+        private Long tmdbId;
+        @JsonProperty("title")
+        private String title;
+        @JsonProperty("release_date")
+        private String releaseDate;
+    }
 }
