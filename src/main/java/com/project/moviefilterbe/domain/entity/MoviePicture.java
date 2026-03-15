@@ -2,9 +2,8 @@ package com.project.moviefilterbe.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Getter
@@ -24,6 +23,5 @@ public class MoviePicture {
     private String mpType;
     private String mpAlt;
 
-    @CreatedDate
-    private LocalDateTime mpCreatedDate;
+    private OffsetDateTime mpCreatedDate;
 }

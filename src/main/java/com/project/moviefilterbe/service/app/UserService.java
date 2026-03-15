@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.service;
+package com.project.moviefilterbe.service.app;
 
 import com.project.moviefilterbe.domain.entity.*;
 import com.project.moviefilterbe.domain.repository.*;
@@ -35,9 +35,4 @@ public class UserService {
             wishListRepository.save(wishList);
         }
     }
-    @Transactional(readOnly = true)
-    public java.util.List<WishList> getWishlistByUiId(String uiId) {
-        return wishListRepository.findByUiId(uiId);
-    }
-
 }

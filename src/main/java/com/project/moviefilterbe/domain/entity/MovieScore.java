@@ -1,5 +1,6 @@
 package com.project.moviefilterbe.domain.entity;
 
+import com.project.moviefilterbe.util.CommonUtil;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,12 +38,25 @@ public class MovieScore {
     @Column(name = "ms_tomato_score", nullable = false)
     private int msTomatoScore;
 
+    @Column(name = "ms_updated_date", nullable = false)
+    private OffsetDateTime msUpdatedDate;
+
     @Column(name = "ms_created_date", nullable = false)
     private OffsetDateTime msCreatedDate;
 
+    public MovieScore movieScoreUpdate(BigDecimal tmdbScore, BigDecimal imdbScore, int metaScore, int tomatoScore) {
+        this.msTmdbScore = tmdbScore;
+        this.msImdbScore = imdbScore;
+        this.msMetaScore = metaScore;
+        this.msTomatoScore = tomatoScore;
+        this.msUpdatedDate = CommonUtil.getDateTimeNow();
+        return this;
+    }
+
     @Builder
     public MovieScore(String msId, String miId, String msTitle, String msYear, BigDecimal msTmdbScore,
-                    BigDecimal msImdbScore, int msMetaScore, int msTomatoScore, OffsetDateTime msCreatedDate) {
+                      BigDecimal msImdbScore, int msMetaScore, int msTomatoScore,
+                      OffsetDateTime msUpdatedDate, OffsetDateTime msCreatedDate) {
         this.msId = msId;
         this.miId = miId;
         this.msTitle = msTitle;
@@ -51,6 +65,7 @@ public class MovieScore {
         this.msImdbScore = msImdbScore;
         this.msMetaScore = msMetaScore;
         this.msTomatoScore = msTomatoScore;
+        this.msUpdatedDate = msUpdatedDate;
         this.msCreatedDate = msCreatedDate;
     }
 }
