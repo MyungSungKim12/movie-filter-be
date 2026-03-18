@@ -26,7 +26,7 @@ public class UserController {
     public void saveWishlist(@RequestBody WishlistRequestDto wishlistRequestDto) {
         userService.updateWishlist(wishlistRequestDto);
     }
-    @GetMapping("/wishlist/{uiId c}")
+    @GetMapping("/wishlist/{uiId}")
     public List<WishList> getWishlist(@PathVariable String uiId) {
         return userService.getWishlistByUiId(uiId);
     }
