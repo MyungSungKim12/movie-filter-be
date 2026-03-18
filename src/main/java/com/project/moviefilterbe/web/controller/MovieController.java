@@ -1,30 +1,28 @@
 package com.project.moviefilterbe.web.controller;
 
-import com.project.moviefilterbe.web.dto.movie.MovieListResponseDto;
+import com.project.moviefilterbe.service.app.MovieService;
 import com.project.moviefilterbe.web.dto.detail.NaverReviewResponseDTO;
 import com.project.moviefilterbe.web.dto.detail.YoutubeVideoResponseDTO;
-import com.project.moviefilterbe.service.api.TmdbApiService;
 import com.project.moviefilterbe.service.api.NaverApiService;
 import com.project.moviefilterbe.service.api.YoutubeApiService;
+import com.project.moviefilterbe.web.dto.movie.MovieRecommendRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/movies")
+@RequestMapping("/api/movie")
 @RequiredArgsConstructor
 public class MovieController {
 
-    private final TmdbApiService movieService;
+    private final MovieService movieService;
     private final NaverApiService naverService;
     private final YoutubeApiService youtubeService;
 
-    // 인기 영화 목록 (TMDB)
-    @GetMapping("/popular")
-    public MovieListResponseDto getPopular() {
-        System.out.println("11111111111");
-
-        return movieService.getPopularMovies();
+    @PostMapping("/recommend")
+    public String recommendMovie(@RequestBody MovieRecommendRequestDto requestDto) {
+        return movieService.recommendMovieService(requestDto);
     }
+
     // 영화 리뷰 검색 (Naver)
     @GetMapping("/reviews")
     public NaverReviewResponseDTO getReviews(@RequestParam("title") String title) {

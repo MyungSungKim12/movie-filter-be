@@ -19,6 +19,7 @@ bin/
 application-supabase.properties
 application-login.properties
 application-api.properties
+application-r2.properties
 
 ### IntelliJ IDEA ###
 .idea

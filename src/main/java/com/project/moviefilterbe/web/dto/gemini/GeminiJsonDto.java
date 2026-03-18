@@ -1,4 +1,4 @@
-package com.project.moviefilterbe.web.dto;
+package com.project.moviefilterbe.web.dto.gemini;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TestRequestDto {
-
-    private String id;
-    private String type;
+public class GeminiJsonDto {
     private String title;
+    private String year;
 }

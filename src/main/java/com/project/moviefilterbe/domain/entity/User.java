@@ -1,5 +1,6 @@
 package com.project.moviefilterbe.domain.entity;
 
+import com.project.moviefilterbe.util.CommonUtil;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,4 +37,9 @@ public class User {
 
     @Column(name = "provider_id")
     private String providerId;
+
+    public User profileImageUpdate(String imageUrl) {
+        this.profileImage = imageUrl;
+        return this;
+    }
 }
