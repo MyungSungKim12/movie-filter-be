@@ -23,9 +23,9 @@ public class UserService {
     private final WishListRepository wishListRepository;
     private final UserRepository userRepository;
     private final ClickLogRepository clickLogRepository;
-
     private final ImageUtil imageUtil;
 
+    // ── 찜 목록 ──────────────────────────────────────────────────────────────
     @Transactional
     public void updateWishlist(WishlistRequestDto wishlistRequestDto) {
         try {
@@ -33,7 +33,6 @@ public class UserService {
                     wishlistRequestDto.getUiId(),
                     wishlistRequestDto.getMiId()
             );
-
             if (existingWishlist.isPresent()) {
                 wishListRepository.delete(existingWishlist.get());
             } else {
@@ -45,28 +44,53 @@ public class UserService {
                         .build();
                 wishListRepository.save(wishList);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error("[USER] 즐겨찾기 업데이트 오류 : {}", e.getMessage());
         }
     }
 
-    public void updateProfileImage(MultipartFile multipartFile, String userId) {
+    // ── 프로필 이미지 조회 ────────────────────────────────────────────────────
+    public String getProfileImage(String userId) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    String img = user.getUiImage();
+                    // 빈 문자열은 null 로 처리하여 프론트에서 기본 아바타 표시
+                    return (img != null && !img.isEmpty()) ? img : null;
+                })
+                .orElse(null);
+    }
+
+    // ── 프로필 이미지 업로드 ──────────────────────────────────────────────────
+    @Transactional
+    public String updateProfileImage(MultipartFile multipartFile, String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다. : " + userId));
-        String uploadImageUrl = null;
+
         String beforeImageUrl = user.getUiImage();
+        String uploadImageUrl = null;
+
         try {
+            // 1. R2 업로드
             Map<String, String> uploadResult = imageUtil.imageUploadS3(multipartFile);
+            if (uploadResult == null || uploadResult.get("imgUrl") == null) {
+                throw new RuntimeException("R2 업로드 실패");
+            }
             uploadImageUrl = uploadResult.get("imgUrl");
 
+            // 2. DB 갱신
             user.profileImageUpdate(uploadImageUrl);
             userRepository.save(user);
 
-            if(beforeImageUrl != null && !beforeImageUrl.isEmpty()) {
+            // 3. 이전 이미지 삭제 (URL이 있을 때만)
+            if (beforeImageUrl != null && !beforeImageUrl.isEmpty()) {
                 imageUtil.ImageDeleteS3(beforeImageUrl);
             }
-        } catch(Exception e) {
+
+            return uploadImageUrl;
+
+        } catch (Exception e) {
             log.error("[USER] 이미지 업데이트 오류 : {}", e.getMessage());
+            // 업로드는 됐지만 DB 저장 실패 시 업로드 파일 롤백
             if (uploadImageUrl != null) {
                 imageUtil.ImageDeleteS3(uploadImageUrl);
             }
@@ -74,6 +98,7 @@ public class UserService {
         }
     }
 
+    // ── 클릭 로그 ─────────────────────────────────────────────────────────────
     @Transactional
     public void updateClickLog(WishlistRequestDto wishlistRequestDto) {
         try {
@@ -81,7 +106,6 @@ public class UserService {
                     wishlistRequestDto.getUiId(),
                     wishlistRequestDto.getMiId()
             );
-
             if (existingClickLog.isPresent()) {
                 existingClickLog.get().clickCountUpdate();
             } else {
@@ -95,7 +119,7 @@ public class UserService {
                         .build();
                 clickLogRepository.save(clickLog);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error("[USER] 클릭 로그 업데이트 오류 : {}", e.getMessage());
         }
     }
