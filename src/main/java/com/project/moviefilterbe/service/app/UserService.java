@@ -54,7 +54,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다. : " + userId));
         String uploadImageUrl = null;
-        String beforeImageUrl = user.getProfileImage();
+        String beforeImageUrl = user.getUiImage();
         try {
             Map<String, String> uploadResult = imageUtil.imageUploadS3(multipartFile);
             uploadImageUrl = uploadResult.get("imgUrl");

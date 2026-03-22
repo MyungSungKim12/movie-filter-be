@@ -1,11 +1,12 @@
 package com.project.moviefilterbe.domain.entity;
 
+import com.project.moviefilterbe.util.CommonUtil;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "mf_account_log")
@@ -14,24 +15,23 @@ import java.time.LocalDateTime;
 public class AccountLog {
 
     @Id
-    @Column(name = "al_id")
-    private String alId; // al_ + UUID
+    @Column(name = "al_id", length = 100, nullable = false)
+    private String alId;
 
-    @Column(name = "al_login_ip")
+    @Column(name = "ui_id", length = 100, nullable = false)
+    private String uiId;
+
+    @Column(name = "al_login_ip", length = 50, nullable = false)
     private String alLoginIp;
 
-    @Column(name = "al_login_date")
-    private LocalDateTime alLoginDate;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ui_id", nullable = false) // FK 참조 컬럼명: ui_id
-    private User user;
+    @Column(name = "al_login_date", nullable = false)
+    private OffsetDateTime uiLoginDate;
 
     @Builder
-    public AccountLog(String alId, User user, String alLoginIp) {
+    public AccountLog(String alId, String uiId, String alLoginIp) {
         this.alId = alId;
-        this.user = user;
+        this.uiId = uiId;
         this.alLoginIp = alLoginIp;
-        this.alLoginDate = LocalDateTime.now(); // 로그인 시점 시간 저장
+        this.uiLoginDate = CommonUtil.getDateTimeNow();
     }
 }
