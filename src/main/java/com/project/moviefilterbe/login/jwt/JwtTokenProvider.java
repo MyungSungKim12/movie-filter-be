@@ -38,10 +38,8 @@ public class JwtTokenProvider {
 
     public JwtTokenResponseDto generateToken(String uiId, String role) {
         OffsetDateTime now = OffsetDateTime.now();
-//        OffsetDateTime accessTokenExpire = now.plusHours(1);
-//        OffsetDateTime refreshTokenExpire = now.plusHours(10);
-        OffsetDateTime accessTokenExpire = now.plusSeconds(30);
-        OffsetDateTime refreshTokenExpire = now.plusSeconds(60);
+        OffsetDateTime accessTokenExpire = now.plusHours(1);
+        OffsetDateTime refreshTokenExpire = now.plusHours(10);
         Date accessDate = Date.from(accessTokenExpire.toInstant());
         Date refreshDate = Date.from(refreshTokenExpire.toInstant());
 
