@@ -51,18 +51,11 @@ public class GeminiApiService {
         headers.set("x-goog-api-key", geminiApiKey);
 
         String promptText = String.format(
-            "너는 영화 추천 전문 API 시스템이야. 사용자의 감정, 인원, 장르 데이터를 기반으로 최적의 영화 20개를 추천한다.\n\n" +
-            "[규칙]\n" +
-            "1. 모든 응답은 반드시 순수한 JSON 형식으로만 출력한다. 다른 설명은 생략한다.\n" +
-            "2. 영화 제목은 반드시 '영화제목(개봉연도)' 형식으로, 무조건 한국어로 작성한다.\n" +
-            "3. 최근 3년 이내 신작 5개 이상 포함, 대중적 작품과 명작 비율 7:3 엄수.\n\n" +
-            "[JSON 구조]\n" +
-            "{\n" +
-            "  \"recommended_movies\": [\"제목(연도)\", \"제목(연도)\", ...]\n" +
-            "}\n\n" +
-            "[요청 내용]\n" +
-            "감정: %s / 인원: %s / 장르: %s",
-            motions, people, genres
+                "Act as a movie recommendation API. Recommend 20 movies based on the user's input.\n\n" +
+                "[Data] Emotion: %s / People: %s / Genre: %s\n" +
+                "[Request] Mix latest hits and all-time classics appropriately.\n" +
+                "[Response Format] Output in JSON format with Korean values: {\"movies\": [{\"t\":\"Movie Title\", \"y\":\"Year\"}]}",
+                motions, people, genres
         );
 
         Map<String, Object> requestBody = Map.of(
@@ -70,7 +63,9 @@ public class GeminiApiService {
                         "parts", List.of(Map.of("text", promptText))
                 )),
                 "generationConfig", Map.of(
-                        "response_mime_type", "application/json"
+                        "responseMimeType", "application/json",
+                        "temperature", 0.6,
+                        "candidateCount", 1
                 )
         );
 
@@ -84,19 +79,15 @@ public class GeminiApiService {
 //                log.info("Gemini 추천 결과 : {}" , resultText);
 
                 ObjectMapper objectMapper = new ObjectMapper();
-                Map<String, List<String>> resultMap = objectMapper.readValue(resultText, new TypeReference<>() {});
-                List<String> tempMovieList = resultMap.get("recommended_movies");
+                Map<String, List<Map<String, String>>> resultMap = objectMapper.readValue(resultText, new TypeReference<>() {});
+                List<Map<String, String>> tempMovieList = resultMap.get("movies");
 
                 List<GeminiJsonDto> movieList = new ArrayList<>();
-                Pattern pattern = Pattern.compile("(.+)\\s*\\((\\d{4})\\)");
 
-                for (String raw : tempMovieList) {
-                    Matcher matcher = pattern.matcher(raw);
-                    if (matcher.find()) {
-                        String title = matcher.group(1).trim();
-                        String year = matcher.group(2);
-                        movieList.add(new GeminiJsonDto(title, year));
-                    }
+                for (Map<String, String> raw : tempMovieList) {
+                    String title = raw.get("t");
+                    String year = raw.get("y");
+                    movieList.add(new GeminiJsonDto(title, year));
                 }
                 return movieList;
             } else {
