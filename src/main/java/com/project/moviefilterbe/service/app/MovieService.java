@@ -46,11 +46,14 @@ public class MovieService {
 
     @Transactional
     public String recommendMovieService(MovieRecommendRequestDto requestDto) {
+        long geminiStartTime = System.currentTimeMillis();
         List<GeminiJsonDto> geminiJsonList = geminiApiService.geminiSearchMovies(requestDto);
+        long geminiEndTime = System.currentTimeMillis();
         if (geminiJsonList == null || geminiJsonList.isEmpty()) {
             log.error("[Gemini] 영화 추천 응답 오류: {}", geminiJsonList);
             return "NONE";
         }
+        log.info("[Gemini] 실행 시간: {}s", ((geminiEndTime - geminiStartTime)/1000.0));
 
         ExecutorService executor = Executors.newFixedThreadPool(Math.min(geminiJsonList.size(), 10), r -> {
             Thread t = new Thread(r);
@@ -59,6 +62,7 @@ public class MovieService {
         });
 
         try {
+            long tmdbStartTime = System.currentTimeMillis();
             List<CompletableFuture<TmdbDetailResponseDto>> futures = geminiJsonList.stream()
                     .map(title -> CompletableFuture.supplyAsync(() -> {
                         log.info("{} 가 '{}' 처리 중..." , Thread.currentThread().getName(), title);
@@ -70,7 +74,10 @@ public class MovieService {
                     .map(CompletableFuture::join)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+            long tmdbEndTime = System.currentTimeMillis();
+            log.info("[TMDB] 실행 시간: {}s", ((tmdbEndTime - tmdbStartTime)/1000.0));
 
+            long supabaseStartTime = System.currentTimeMillis();
             boolean saveResult = recommendMovieSave(results);
 
             if(saveResult) {
@@ -82,8 +89,10 @@ public class MovieService {
                 for(MovieRecommendRequestDto.Option option : requestDto.getOption()) {
                     recommendOptionList.computeIfAbsent(option.getType(), k -> new ArrayList<>()).add(option.getTitle());
                 }
-
-                return recommendMovieLogSave(requestDto.getUserId(), recommendTmdbIdList, recommendOptionList);
+                String id = recommendMovieLogSave(requestDto.getUserId(), recommendTmdbIdList, recommendOptionList);
+                long supabaseEndTime = System.currentTimeMillis();
+                log.info("[Supabase] 실행 시간: {}s", ((supabaseEndTime - supabaseStartTime)/1000.0));
+                return id;
             } else {
                 return "NONE";
             }
@@ -100,6 +109,12 @@ public class MovieService {
             return false;
         }
 
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(results.size(), 10), r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+        });
+
         try {
             List<String> tmdbIdList = results.stream()
                     .map(dto -> "mi_" + dto.getTmdbId())
@@ -113,9 +128,23 @@ public class MovieService {
             List<MoviePicture> batchMoviePicture = new ArrayList<>();
             List<MovieScore> batchMovieScore = new ArrayList<>();
 
+            List<CompletableFuture<OmdbSearchResponseDto>> futures = results.stream()
+                    .map(omdb -> CompletableFuture.supplyAsync(() -> {
+                        log.info("{} 가 '{}' 처리 중..." , Thread.currentThread().getName(), omdb.getTitle());
+                        return omdbApiService.getMovieDetails(omdb.getImdbId());
+                    }, executor))
+                    .collect(Collectors.toList());
+
+            List<OmdbSearchResponseDto> omdbDetails = futures.stream()
+                    .map(CompletableFuture::join)
+                    .collect(Collectors.toList());
+
             for (TmdbDetailResponseDto dto : results) {
                 String miId = "mi_" + dto.getTmdbId();
-                OmdbSearchResponseDto omdbSearchResponseDto = omdbApiService.getMovieDetails(dto.getImdbId());
+                OmdbSearchResponseDto omdbSearchResponseDto = omdbDetails.stream()
+                        .filter(omdb -> omdb.getImdbId().equals(dto.getImdbId()))
+                        .findFirst() // 첫 번째로 발견된 것 반환
+                        .orElse(null);
                 Map<String, String> extractScore = TmdbApiUtil.getExtractScore(omdbSearchResponseDto);
 
                 if (movieMap.containsKey(miId)) {
@@ -182,6 +211,8 @@ public class MovieService {
         } catch (Exception e) {
             log.error("[Supabase] 알수없는 에러 ({}): ", e.getMessage());
             return false;
+        } finally {
+            executor.shutdown();
         }
     }
 
