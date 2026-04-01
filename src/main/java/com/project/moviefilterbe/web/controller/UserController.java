@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
@@ -23,8 +25,17 @@ public class UserController {
     }
 
     @PostMapping("/uploadImage")
-    public void profileUploadImage(@RequestPart("files") MultipartFile multipartFile, @RequestPart("userId") String userId) {
-        userService.updateProfileImage(multipartFile, userId);
+    public ResponseEntity<Map<String, String>> profileUploadImage(
+            @RequestPart("files") MultipartFile multipartFile,
+            @RequestPart("userId") String userId) {
+        String imageUrl = userService.updateProfileImage(multipartFile, userId);
+        return ResponseEntity.ok(Map.of("profileImageUrl", imageUrl));
+    }
+
+    @GetMapping("/profile-image")
+    public ResponseEntity<Map<String, String>> getProfileImage(@RequestParam("userId") String userId) {
+        String imageUrl = userService.getProfileImage(userId);
+        return ResponseEntity.ok(Map.of("profileImageUrl", imageUrl != null ? imageUrl : ""));
     }
 
     @PostMapping("/clickLog")

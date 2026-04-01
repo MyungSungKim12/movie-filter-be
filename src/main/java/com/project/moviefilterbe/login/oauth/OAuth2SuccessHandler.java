@@ -62,14 +62,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", token.getRefreshToken())
                 .path("/")
                 .httpOnly(true)                          // JS에서 접근 불가 (보안)
-                .secure(false)                           // 로컬(http) 테스트 시 false, 배포(https) 시 true
+                .secure(true)                           // 로컬(http) 테스트 시 false, 배포(https) 시 true
                 .sameSite("Lax")                         // 포트가 다른 로컬 환경에서 쿠키 전달 허용
                 .maxAge(token.getRefreshTokenExpires())  // 7일 (DB 만료일과 맞춤)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/login-success")
+        //String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/login-success")
+        String targetUrl = UriComponentsBuilder.fromUriString("https://movie-filter-fe-mauve.vercel.app/login-success")
                 .queryParam("accessToken", token.getAccessToken())
                 .build().toUriString();
 

@@ -17,6 +17,8 @@ public class CorsConfig {
 
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("https://movie-filter-fe-mauve.vercel.app");
+        config.addAllowedOriginPattern("https://*.vercel.app");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
