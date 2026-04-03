@@ -19,6 +19,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,16 +32,6 @@ public class GeminiApiService {
     @Value("${gemini.api.key}")
     private String geminiApiKey;
 
-    // 플랫폼 코드 → 한글 매핑
-    private static final Map<String, String> PLATFORM_LABEL = Map.of(
-            "NETFLIX", "넷플릭스(Netflix)",
-            "TVING",   "티빙(TVING)",
-            "WATCHA",  "왓챠(Watcha)",
-            "WAVVE",   "웨이브(Wavve)",
-            "AMAZON",  "아마존 프라임(Amazon Prime Video)",
-            "DISNEY",  "디즈니+(Disney+)"
-    );
-
     public List<GeminiJsonDto> geminiSearchMovies(MovieRecommendRequestDto requestDto) {
         Map<String, String> grouped = requestDto.getOption().stream()
                 .collect(Collectors.groupingBy(
@@ -47,36 +39,23 @@ public class GeminiApiService {
                         Collectors.mapping(MovieRecommendRequestDto.Option::getTitle, Collectors.joining(","))
                 ));
 
-        String people  = grouped.getOrDefault("P", "");
+        String people = grouped.getOrDefault("P", "");
         String motions = grouped.getOrDefault("M", "");
-        String genres  = grouped.getOrDefault("G", "");
-        String platform = requestDto.getPlatform();
+        String genres = grouped.getOrDefault("G", "");
 
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-        URI uri = UriComponentsBuilder.fromUriString(url).build().toUri();
 
+        URI uri = UriComponentsBuilder.fromUriString(url).build().toUri();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-goog-api-key", geminiApiKey);
 
-        // 플랫폼 조건 문구 생성
-        String platformCondition;
-        if (platform == null || platform.isBlank() || platform.equals("ALL")) {
-            platformCondition = "OTT 플랫폼 제한 없이 추천해주세요.";
-        } else {
-            String label = PLATFORM_LABEL.getOrDefault(platform, platform);
-            platformCondition = String.format(
-                    "반드시 %s에서 시청 가능한 영화만 추천해주세요. 해당 플랫폼에서 제공되지 않는 영화는 절대 포함하지 마세요.", label
-            );
-        }
-
         String promptText = String.format(
                 "Act as a movie recommendation API. Recommend 20 movies based on the user's input.\n\n" +
-                        "[Data] Emotion: %s / People: %s / Genre: %s\n" +
-                        "[Platform] %s\n" +
-                        "[Request] Mix latest hits and all-time classics appropriately.\n" +
-                        "[Response Format] Output in JSON format with Korean values: {\"movies\": [{\"t\":\"Movie Title\", \"y\":\"Year\"}]}",
-                motions, people, genres, platformCondition
+                "[Data] Emotion: %s / People: %s / Genre: %s\n" +
+                "[Request] Mix latest hits and all-time classics appropriately.\n" +
+                "[Response Format] Output in JSON format with Korean values: {\"movies\": [{\"t\":\"Movie Title\", \"y\":\"Year\"}]}",
+                motions, people, genres
         );
 
         Map<String, Object> requestBody = Map.of(
@@ -97,14 +76,18 @@ public class GeminiApiService {
 
             if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
                 String resultText = response.getCandidates().get(0).getContent().getParts().get(0).getText();
+//                log.info("Gemini 추천 결과 : {}" , resultText);
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, List<Map<String, String>>> resultMap = objectMapper.readValue(resultText, new TypeReference<>() {});
                 List<Map<String, String>> tempMovieList = resultMap.get("movies");
 
                 List<GeminiJsonDto> movieList = new ArrayList<>();
+
                 for (Map<String, String> raw : tempMovieList) {
-                    movieList.add(new GeminiJsonDto(raw.get("t"), raw.get("y")));
+                    String title = raw.get("t");
+                    String year = raw.get("y");
+                    movieList.add(new GeminiJsonDto(title, year));
                 }
                 return movieList;
             } else {

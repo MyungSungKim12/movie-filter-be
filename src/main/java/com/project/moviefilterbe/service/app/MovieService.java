@@ -53,7 +53,7 @@ public class MovieService {
             log.error("[Gemini] 영화 추천 응답 오류: {}", geminiJsonList);
             return "NONE";
         }
-        log.info("[Gemini] 실행 시간: {}s", ((geminiEndTime - geminiStartTime) / 1000.0));
+        log.info("[Gemini] 실행 시간: {}s", ((geminiEndTime - geminiStartTime)/1000.0));
 
         ExecutorService executor = Executors.newFixedThreadPool(Math.min(geminiJsonList.size(), 10), r -> {
             Thread t = new Thread(r);
@@ -65,7 +65,7 @@ public class MovieService {
             long tmdbStartTime = System.currentTimeMillis();
             List<CompletableFuture<TmdbDetailResponseDto>> futures = geminiJsonList.stream()
                     .map(title -> CompletableFuture.supplyAsync(() -> {
-                        log.info("{} 가 '{}' 처리 중...", Thread.currentThread().getName(), title);
+                        log.info("{} 가 '{}' 처리 중..." , Thread.currentThread().getName(), title);
                         return tmdbApiService.searchTmdbMovieInfo(title);
                     }, executor))
                     .collect(Collectors.toList());
@@ -75,37 +75,23 @@ public class MovieService {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             long tmdbEndTime = System.currentTimeMillis();
-            log.info("[TMDB] 실행 시간: {}s", ((tmdbEndTime - tmdbStartTime) / 1000.0));
-
-            // 플랫폼 필터링 (ALL이 아닌 경우 해당 플랫폼 영화만)
-            String platform = requestDto.getPlatform();
-            if (platform != null && !platform.isBlank() && !platform.equals("ALL")) {
-                results = results.stream()
-                        .filter(dto -> dto.getOtt() != null && dto.getOtt().contains(platform))
-                        .collect(Collectors.toList());
-                log.info("[Platform Filter] {} 필터 후 영화 수: {}개", platform, results.size());
-            }
+            log.info("[TMDB] 실행 시간: {}s", ((tmdbEndTime - tmdbStartTime)/1000.0));
 
             long supabaseStartTime = System.currentTimeMillis();
             boolean saveResult = recommendMovieSave(results);
 
-            if (saveResult) {
+            if(saveResult) {
                 List<String> recommendTmdbIdList = results.stream()
                         .map(dto -> "mi_" + dto.getTmdbId())
                         .collect(Collectors.toList());
                 Map<String, List<String>> recommendOptionList = new HashMap<>();
 
-                for (MovieRecommendRequestDto.Option option : requestDto.getOption()) {
+                for(MovieRecommendRequestDto.Option option : requestDto.getOption()) {
                     recommendOptionList.computeIfAbsent(option.getType(), k -> new ArrayList<>()).add(option.getTitle());
                 }
-                // 플랫폼도 optionList에 기록
-                if (platform != null && !platform.isBlank()) {
-                    recommendOptionList.put("PLATFORM", List.of(platform));
-                }
-
                 String id = recommendMovieLogSave(requestDto.getUserId(), recommendTmdbIdList, recommendOptionList);
                 long supabaseEndTime = System.currentTimeMillis();
-                log.info("[Supabase] 실행 시간: {}s", ((supabaseEndTime - supabaseStartTime) / 1000.0));
+                log.info("[Supabase] 실행 시간: {}s", ((supabaseEndTime - supabaseStartTime)/1000.0));
                 return id;
             } else {
                 return "NONE";
