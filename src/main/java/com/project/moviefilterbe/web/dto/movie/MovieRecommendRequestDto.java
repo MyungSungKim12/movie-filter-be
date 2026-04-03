@@ -8,6 +8,7 @@ import java.util.List;
 public class MovieRecommendRequestDto {
     private String userId;
     private List<Option> option;
+    private String platform; // 추가: "NETFLIX", "TVING", "WATCHA", "WAVVE", "AMAZON", "DISNEY", "ALL"
 
     @Data
     public static class Option {
